@@ -1,0 +1,13 @@
+# Ficheiros compilados
+*.class
+/out/
+/build/
+
+# Configurações do IntelliJ IDEA
+.idea/*
+*.iml
+*.iws
+
+# Ficheiros do sistema operativo (Mac/Windows)
+.DS_Store
+Thumbs.db
