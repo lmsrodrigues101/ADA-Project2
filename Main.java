@@ -1,102 +1,61 @@
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Scanner;
 
+// 4. CLASSE MAIN (Apenas interface: lê e imprime)
 public class Main {
     public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
+        Scanner sc = new Scanner(System.in);
 
-        if (!scanner.hasNextInt()) return;
-        int T = scanner.nextInt();
+        // Verifica se há input para ler
+        if (!sc.hasNextInt()) {
+            sc.close();
+            return;
+        }
 
+        // Lê o número total de casos de teste
+        int T = sc.nextInt();
+
+        // Instancia o sistema uma única vez
+        EldrinSystem system = new EldrinSystem();
+
+        // Ciclo for tradicional para os casos de teste
         for (int t = 0; t < T; t++) {
-            int R = scanner.nextInt();
-            int C = scanner.nextInt();
-            int N = scanner.nextInt();
-            int L = scanner.nextInt();
-            int B = scanner.nextInt();
 
-            Graph graph = new Graph(B);
-            int[][] grid = new int[R][C];
-            List<Integer> targets = new ArrayList<>();
-            boolean[] isTarget = new boolean[B + 1];
+            // Leitura dos parâmetros do caso de teste atual
+            int R = sc.nextInt();
+            int C = sc.nextInt();
+            int N = sc.nextInt();
+            int L = sc.nextInt();
+            int B = sc.nextInt();
 
-            int[] br = new int[B + 1];
-            int[] bc = new int[B + 1];
-            int[] bl = new int[B + 1];
-            char[] bd = new char[B + 1];
-
-            // LER RAIOS E PREENCHER A GRELHA
+            // Extrair os dados brutos e empacotá-los no DTO (Data Transfer Object)
+            List<EldrinSystem.BeamData> beams = new ArrayList<>();
             for (int i = 1; i <= B; i++) {
-                br[i] = scanner.nextInt();
-                bc[i] = scanner.nextInt();
-                bl[i] = scanner.nextInt();
-                bd[i] = scanner.next().charAt(0);
-
-                int dr = 0, dc = 0;
-                if (bd[i] == 'N') dr = -1;
-                else if (bd[i] == 'S') dr = 1;
-                else if (bd[i] == 'E') dc = 1;
-                else if (bd[i] == 'W') dc = -1;
-
-                // Desenhar o raio físico (o espaço que ele ocupa parado)
-                for (int k = 0; k < bl[i]; k++) {
-                    int currR = br[i] + k * dr;
-                    int currC = bc[i] + k * dc;
-                    grid[currR][currC] = i; // Grava o ID do raio na célula
-
-                    // Se o raio ocupa o corredor mágico a limpar, ele é um alvo
-                    if (currC >= L && currC < L + N) {
-                        if (!isTarget[i]) {
-                            isTarget[i] = true;
-                            targets.add(i);
-                        }
-                    }
-                }
+                int r = sc.nextInt();
+                int c = sc.nextInt();
+                int l = sc.nextInt();
+                char dir = sc.next().charAt(0);
+                beams.add(new EldrinSystem.BeamData(i, r, c, l, dir));
             }
 
-            // SIMULAR A VIAGEM DOS RAIOS (VARRENDO O MAPA TODO À FRENTE DELES)
-            for (int i = 1; i <= B; i++) {
-                int dr = 0, dc = 0;
-                if (bd[i] == 'N') dr = -1;
-                else if (bd[i] == 'S') dr = 1;
-                else if (bd[i] == 'E') dc = 1;
-                else if (bd[i] == 'W') dc = -1;
+            // O Sistema trata da simulação e das contas complexas
+            List<Integer> result = system.solveProblem(R, C, N, L, beams);
 
-                // A viagem começa exatamanente 1 célula à frente do fim do próprio raio
-                int currR = br[i] + bl[i] * dr;
-                int currC = bc[i] + bl[i] * dc;
-
-                // Vai andando para sempre até sair dos limites da grelha
-                while (currR >= 0 && currR < R && currC >= 0 && currC < C) {
-                    int blockerId = grid[currR][currC];
-
-                    // Se a célula tiver o corpo de um raio (diferente dele próprio)
-                    if (blockerId != 0 && blockerId != i) {
-                        // O 'blockerId' bloqueia o raio 'i'. Usamos o addEdge aqui!
-                        graph.addEdge(blockerId, i);
-                    }
-
-                    // Avança 1 passo
-                    currR += dr;
-                    currC += dc;
-                }
-            }
-
-            // EXECUTAR O SISTEMA E IMPRIMIR RESULTADOS (Apenas a Main faz prints)
-            EldrinSystem system = new EldrinSystem(graph);
-            system.findRequiredBeams(targets);
-            List<Integer> result = system.solve();
-
+            // A Main trata de imprimir com base na resposta recebida
             if (result == null) {
                 System.out.println("Disaster");
             } else if (result.isEmpty()) {
                 System.out.println("False alarm");
             } else {
                 for (int i = 0; i < result.size(); i++) {
+                    // Imprime o ID. Se não for o último, adiciona um espaço.
                     System.out.print(result.get(i) + (i == result.size() - 1 ? "" : " "));
                 }
-                System.out.println();
+                System.out.println(); // Nova linha após a resposta
             }
         }
-        scanner.close();
+
+        sc.close();
     }
 }

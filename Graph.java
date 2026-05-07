@@ -1,17 +1,15 @@
 public class Graph {
     public Node[] nodes;
-    public int numNodes;
 
     public Graph(int numNodes) {
-        this.numNodes = numNodes;
         this.nodes = new Node[numNodes + 1]; // Índices de 1 a B
         for (int i = 1; i <= numNodes; i++) {
             nodes[i] = new Node(i);
         }
     }
 
-    // Se 'blocker' bloqueia 'blocked', 'blocked' depende de 'blocker' sair primeiro.
-    public void addEdge(int blockerId, int blockedId) {
+    // Cria a dependência: O blocker tem de sair ANTES do blocked
+    public void addDependency(int blockerId, int blockedId) {
         Node blocker = nodes[blockerId];
         Node blocked = nodes[blockedId];
 
@@ -20,9 +18,5 @@ public class Graph {
             blocker.blocks.add(blocked);
             blocked.blockedBy.add(blocker);
         }
-    }
-
-    public Node getNode(int id) {
-        return nodes[id];
     }
 }

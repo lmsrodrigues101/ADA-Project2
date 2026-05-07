@@ -1,52 +1,115 @@
 import java.util.*;
 
 public class EldrinSystem {
-    private Graph graph;
-    private int requiredCount = 0;
 
-    public EldrinSystem(Graph graph) {
-        this.graph = graph;
+    // Objeto de Transferência de Dados (DTO) para a Main enviar a informação dos raios
+    public static class BeamData {
+        public int id, r, c, l;
+        public char dir;
+
+        public BeamData(int id, int r, int c, int l, char dir) {
+            this.id = id;
+            this.r = r;
+            this.c = c;
+            this.l = l;
+            this.dir = dir;
+        }
     }
 
-    // Percurso em Largura (BFS) para encontrar todos os raios que têm mesmo de sair
-    public int findRequiredBeams(List<Integer> targetIds) {
-        Queue<Node> queue = new LinkedList<>();
+    // Método principal do sistema que orquestra tudo
+    public List<Integer> solveProblem(int R, int C, int N, int L, List<BeamData> beams) {
+        int B = beams.size();
+        Graph graph = new Graph(B);
+        int[][] grid = new int[R][C];
+        List<Integer> corridorBeams = new ArrayList<>();
 
-        for (int id : targetIds) {
-            Node target = graph.getNode(id);
-            if (!target.isRequired) {
-                target.isRequired = true;
-                requiredCount++;
-                queue.add(target);
-            }
-        }
+        // 1. LÓGICA DE CONSTRUÇÃO DA GRELHA
+        for (BeamData b : beams) {
+            int dr = 0, dc = 0;
+            if (b.dir == 'N') dr = -1;
+            else if (b.dir == 'S') dr = 1;
+            else if (b.dir == 'E') dc = 1;
+            else if (b.dir == 'W') dc = -1;
 
-        while (!queue.isEmpty()) {
-            Node current = queue.poll();
+            // Desenhar o corpo do raio
+            for (int k = 0; k < b.l; k++) {
+                int currR = b.r + k * dr;
+                int currC = b.c + k * dc;
+                grid[currR][currC] = b.id;
 
-            // Recua nas arestas: quem é que está a bloquear este raio?
-            for (Node blocker : current.blockedBy) {
-                if (!blocker.isRequired) {
-                    blocker.isRequired = true;
-                    requiredCount++;
-                    queue.add(blocker);
+                // Verificar se toca no corredor alvo
+                if (currC >= L && currC < L + N) {
+                    if (!corridorBeams.contains(b.id)) {
+                        corridorBeams.add(b.id);
+                    }
                 }
             }
         }
-        return requiredCount;
-    }
 
-    // Algoritmo de Kahn. Devolve NULL se for Disaster, Lista Vazia se False Alarm, ou a Ordem correta.
-    public List<Integer> solve() {
-        if (requiredCount == 0) {
-            return new ArrayList<>(); // False alarm (lista vazia)
+        // 2. SIMULAÇÃO DE COLISÕES (Ray-tracing interno)
+        for (BeamData b : beams) {
+            int dr = 0, dc = 0;
+            if (b.dir == 'N') dr = -1;
+            else if (b.dir == 'S') dr = 1;
+            else if (b.dir == 'E') dc = 1;
+            else if (b.dir == 'W') dc = -1;
+
+            // Começar a viagem imediatamente à frente do raio
+            int currR = b.r + b.l * dr;
+            int currC = b.c + b.l * dc;
+
+            // Viajar até aos limites do mapa
+            while (currR >= 0 && currR < R && currC >= 0 && currC < C) {
+                int blockerId = grid[currR][currC];
+                if (blockerId != 0 && blockerId != b.id) {
+                    graph.addDependency(blockerId, b.id);
+                }
+                currR += dr;
+                currC += dc;
+            }
         }
 
-        PriorityQueue<Node> readyQueue = new PriorityQueue<>();
+        // 3. EXECUTAR ALGORITMOS DE GRAFOS
+        return runEngine(graph, corridorBeams);
+    }
 
-        // Calcular graus de entrada só para quem é obrigatório sair
-        for (int i = 1; i <= graph.numNodes; i++) {
-            Node n = graph.getNode(i);
+    // Lógica privada de Grafos (BFS + Kahn)
+    private List<Integer> runEngine(Graph graph, List<Integer> targets) {
+
+        // --- FASE BFS: Encontrar quem tem de sair ---
+        Queue<Node> q = new LinkedList<>();
+        int reqCount = 0;
+
+        for (int id : targets) {
+            Node n = graph.nodes[id];
+            if (!n.isRequired) {
+                n.isRequired = true;
+                reqCount++;
+                q.add(n);
+            }
+        }
+
+        while (!q.isEmpty()) {
+            Node curr = q.poll();
+            for (Node blocker : curr.blockedBy) {
+                if (!blocker.isRequired) {
+                    blocker.isRequired = true;
+                    reqCount++;
+                    q.add(blocker);
+                }
+            }
+        }
+
+        // Se ninguém precisa de sair, é alarme falso
+        if (reqCount == 0) {
+            return new ArrayList<>();
+        }
+
+        // --- FASE KAHN: Ordenação Topológica com PriorityQueue ---
+        PriorityQueue<Node> ready = new PriorityQueue<>();
+
+        for (int i = 1; i < graph.nodes.length; i++) {
+            Node n = graph.nodes[i];
             if (n.isRequired) {
                 for (Node blocker : n.blockedBy) {
                     if (blocker.isRequired) {
@@ -54,31 +117,28 @@ public class EldrinSystem {
                     }
                 }
                 if (n.inDegree == 0) {
-                    readyQueue.add(n);
+                    ready.add(n);
                 }
             }
         }
 
-        List<Integer> escapeOrder = new ArrayList<>();
+        List<Integer> result = new ArrayList<>();
 
-        while (!readyQueue.isEmpty()) {
-            Node current = readyQueue.poll();
-            escapeOrder.add(current.id);
+        while (!ready.isEmpty()) {
+            Node curr = ready.poll();
+            result.add(curr.id);
 
-            for (Node blocked : current.blocks) {
-                if (blocked.isRequired) {
-                    blocked.inDegree--;
-                    if (blocked.inDegree == 0) {
-                        readyQueue.add(blocked);
+            for (Node next : curr.blocks) {
+                if (next.isRequired) {
+                    next.inDegree--;
+                    if (next.inDegree == 0) {
+                        ready.add(next);
                     }
                 }
             }
         }
-        // Teste de Aciclicidade: se não conseguimos tirar todos, há um ciclo (Disaster)
-        if (escapeOrder.size() != requiredCount) {
-            return null; // Representa Disaster
-        }
 
-        return escapeOrder;
+        // Teste de Aciclicidade
+        return (result.size() == reqCount) ? result : null;
     }
 }
