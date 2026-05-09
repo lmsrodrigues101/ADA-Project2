@@ -4,8 +4,9 @@
 /build/
 
 # Configurações do IntelliJ IDEA
-.idea/*
 *.iml
+.idea/
+out/
 *.iws
 
 # Ficheiros do sistema operativo (Mac/Windows)
