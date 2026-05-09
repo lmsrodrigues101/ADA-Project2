@@ -1,52 +1,80 @@
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
-import java.util.Scanner;
+import java.util.StringTokenizer;
 
 public class Main {
-    public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in); // Mudar para Buffer
 
-        if (!sc.hasNextInt()) {
-            sc.close();
-            return;
+    // Classe para leitura ultrarrápida (substitui o Scanner)
+    static class FastReader {
+        BufferedReader br;
+        StringTokenizer st;
+
+        public FastReader() {
+            br = new BufferedReader(new InputStreamReader(System.in));
         }
 
-        int T = sc.nextInt();
+        String next() {
+            while (st == null || !st.hasMoreElements()) {
+                try {
+                    String line = br.readLine();
+                    if (line == null) return null; // Fim de ficheiro
+                    st = new StringTokenizer(line);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return st.nextToken();
+        }
 
-        EldrinSystem system = new EldrinSystem();
+        int nextInt() {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) {
+        FastReader sc = new FastReader();
+
+        String firstToken = sc.next();
+        if (firstToken == null) return; // Segurança caso a entrada seja vazia
+
+        int T = Integer.parseInt(firstToken);
 
         for (int t = 0; t < T; t++) {
 
-            int R = sc.nextInt(); // Rows
-            int C = sc.nextInt(); // Cols
+            int R = sc.nextInt();
+            int C = sc.nextInt();
             int N = sc.nextInt();
             int L = sc.nextInt();
-            int B = sc.nextInt(); // Beams
+            int B = sc.nextInt();
 
-            List<EldrinSystem.BeamData> beams = new ArrayList<>();
+            EldrinSystem.BeamData[] beams = new EldrinSystem.BeamData[B + 1]; // Índice 1 até B
+
             for (int i = 1; i <= B; i++) {
-                int r = sc.nextInt(); // começa na célula na linha r
-                int c = sc.nextInt(); // e na coluna c
-                int l = sc.nextInt(); // com uma length de l
-                char dir = sc.next().charAt(0); // no sentido dir (Norte, Sul, Este, Oeste)
-                beams.add(new EldrinSystem.BeamData(i, r, c, l, dir));
+                int r = sc.nextInt();
+                int c = sc.nextInt();
+                int l = sc.nextInt();
+                char dir = sc.next().charAt(0);
+                beams[i] = new EldrinSystem.BeamData(i, r, c, l, dir);
             }
 
-            List<Integer> result = system.solveProblem(R, C, N, L, beams);
+            // Criamos um novo sistema para cada caso de teste (evita poluição de variáveis antigas)
+            EldrinSystem system = new EldrinSystem(R, C, N, L, B, beams);
+            List<Integer> result = system.solveProblem();
 
-            // Acho que a resposta é enviada pelo sistema e a main só imprime (??)
+            // A main apenas lida com o output
             if (result == null) {
                 System.out.println("Disaster");
             } else if (result.isEmpty()) {
                 System.out.println("False alarm");
             } else {
+                StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < result.size(); i++) {
-                    System.out.print(result.get(i) + (i == result.size() - 1 ? "" : " "));
+                    sb.append(result.get(i)).append(i == result.size() - 1 ? "" : " ");
                 }
-                System.out.println();
+                System.out.println(sb.toString());
             }
         }
-
-        sc.close();
     }
 }

@@ -2,7 +2,7 @@ import java.util.*;
 
 public class EldrinSystem {
 
-    // Objeto de Transferência de Dados (DTO) para a Main enviar a informação dos raios
+    // Objeto de Transferência de Dados
     public static class BeamData {
         public int id, r, c, l;
         public char dir;
@@ -16,15 +16,31 @@ public class EldrinSystem {
         }
     }
 
-    // Acho que devíamos fazer um construtor que criasse a grelha e o metodo só fizesse os cálculos necessários
-    public List<Integer> solveProblem(int R, int C, int N, int L, List<BeamData> beams) {
-        int B = beams.size();
-        Graph graph = new Graph(B);
-        int[][] grid = new int[R][C];
+    // Estado do caso de teste
+    private int R, C, N, L, B;
+    private BeamData[] beams;
+    private Graph graph;
+    private int[][] grid;
+    private boolean[] inCorridor; // Substitui o arrayList.contains() para pesquisas ultrarrápidas
+
+    public EldrinSystem(int R, int C, int N, int L, int B, BeamData[] beams) {
+        this.R = R;
+        this.C = C;
+        this.N = N;
+        this.L = L;
+        this.B = B;
+        this.beams = beams;
+        this.graph = new Graph(B);
+        this.grid = new int[R][C];
+        this.inCorridor = new boolean[B + 1];
+    }
+
+    public List<Integer> solveProblem() {
         List<Integer> corridorBeams = new ArrayList<>();
 
         // 1. LÓGICA DE CONSTRUÇÃO DA GRELHA
-        for (BeamData b : beams) {
+        for (int i = 1; i <= B; i++) {
+            BeamData b = beams[i];
             int dr = 0, dc = 0;
             if (b.dir == 'N') dr = -1;
             else if (b.dir == 'S') dr = 1;
@@ -39,7 +55,8 @@ public class EldrinSystem {
 
                 // Verificar se toca no corredor alvo
                 if (currC >= L && currC < L + N) {
-                    if (!corridorBeams.contains(b.id)) {
+                    if (!inCorridor[b.id]) {
+                        inCorridor[b.id] = true;
                         corridorBeams.add(b.id);
                     }
                 }
@@ -47,7 +64,8 @@ public class EldrinSystem {
         }
 
         // 2. SIMULAÇÃO DE COLISÕES (Ray-tracing interno)
-        for (BeamData b : beams) {
+        for (int i = 1; i <= B; i++) {
+            BeamData b = beams[i];
             int dr = 0, dc = 0;
             if (b.dir == 'N') dr = -1;
             else if (b.dir == 'S') dr = 1;
@@ -70,11 +88,11 @@ public class EldrinSystem {
         }
 
         // 3. EXECUTAR ALGORITMOS DE GRAFOS
-        return runEngine(graph, corridorBeams);
+        return runEngine(corridorBeams);
     }
 
     // Lógica privada de Grafos (BFS + Kahn)
-    private List<Integer> runEngine(Graph graph, List<Integer> targets) {
+    private List<Integer> runEngine(List<Integer> targets) {
 
         // --- FASE BFS: Encontrar quem tem de sair ---
         Queue<Node> q = new LinkedList<>();
@@ -108,7 +126,7 @@ public class EldrinSystem {
         // --- FASE KAHN: Ordenação Topológica com PriorityQueue ---
         PriorityQueue<Node> ready = new PriorityQueue<>();
 
-        for (int i = 1; i < graph.nodes.length; i++) {
+        for (int i = 1; i <= B; i++) {
             Node n = graph.nodes[i];
             if (n.isRequired) {
                 for (Node blocker : n.blockedBy) {

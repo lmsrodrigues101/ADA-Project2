@@ -13,10 +13,9 @@ public class Graph {
         Node blocker = nodes[blockerId];
         Node blocked = nodes[blockedId];
 
-        // Evitar arestas repetidas
-        if (!blocker.blocks.contains(blocked)) {
-            blocker.blocks.add(blocked);
-            blocked.blockedBy.add(blocker);
-        }
+        // Como são linhas retas, não há colisões repetidas entre os mesmos dois raios.
+        // Assim poupamos o tempo de fazer blocker.blocks.contains(blocked).
+        blocker.blocks.add(blocked);
+        blocked.blockedBy.add(blocker);
     }
 }
