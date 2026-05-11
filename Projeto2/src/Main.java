@@ -6,60 +6,44 @@ import java.util.StringTokenizer;
 
 public class Main {
 
-    // Classe para leitura ultrarrápida (substitui o Scanner)
-    static class FastReader {
-        BufferedReader br;
-        StringTokenizer st;
+    public static void main(String[] args) throws IOException {
+        // Inicializa o leitor rápido nativo do Java
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-        public FastReader() {
-            br = new BufferedReader(new InputStreamReader(System.in));
-        }
+        String line = br.readLine();
+        if (line == null || line.trim().isEmpty()) return; // Segurança
 
-        String next() {
-            while (st == null || !st.hasMoreElements()) {
-                try {
-                    String line = br.readLine();
-                    if (line == null) return null; // Fim de ficheiro
-                    st = new StringTokenizer(line);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-            return st.nextToken();
-        }
-
-        int nextInt() {
-            return Integer.parseInt(next());
-        }
-    }
-
-    public static void main(String[] args) {
-        FastReader sc = new FastReader();
-
-        String firstToken = sc.next();
-        if (firstToken == null) return; // Segurança caso a entrada seja vazia
-
-        int T = Integer.parseInt(firstToken);
+        int T = Integer.parseInt(line.trim());
 
         for (int t = 0; t < T; t++) {
 
-            int R = sc.nextInt();
-            int C = sc.nextInt();
-            int N = sc.nextInt();
-            int L = sc.nextInt();
-            int B = sc.nextInt();
+            // Lê R e C (na mesma linha)
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int R = Integer.parseInt(st.nextToken());
+            int C = Integer.parseInt(st.nextToken());
 
-            EldrinSystem.BeamData[] beams = new EldrinSystem.BeamData[B + 1]; // Índice 1 até B
+            // Lê N e L (na mesma linha)
+            st = new StringTokenizer(br.readLine());
+            int N = Integer.parseInt(st.nextToken());
+            int L = Integer.parseInt(st.nextToken());
 
+            // Lê B (sozinho numa linha)
+            int B = Integer.parseInt(br.readLine().trim());
+
+            EldrinSystem.BeamData[] beams = new EldrinSystem.BeamData[B + 1];
+
+            // Lê as informações de cada raio
             for (int i = 1; i <= B; i++) {
-                int r = sc.nextInt();
-                int c = sc.nextInt();
-                int l = sc.nextInt();
-                char dir = sc.next().charAt(0);
+                st = new StringTokenizer(br.readLine());
+                int r = Integer.parseInt(st.nextToken());
+                int c = Integer.parseInt(st.nextToken());
+                int l = Integer.parseInt(st.nextToken());
+                char dir = st.nextToken().charAt(0);
+
                 beams[i] = new EldrinSystem.BeamData(i, r, c, l, dir);
             }
 
-            // Criamos um novo sistema para cada caso de teste (evita poluição de variáveis antigas)
+            // Criamos um novo sistema para cada caso de teste
             EldrinSystem system = new EldrinSystem(R, C, N, L, B, beams);
             List<Integer> result = system.solveProblem();
 
