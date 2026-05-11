@@ -1,11 +1,21 @@
+import topologicalSort.Graph;
+import topologicalSort.Node;
+
 import java.util.*;
 
 public class EldrinSystem {
+
+    // Constantes para as direções
+    public static final char NORTH = 'N';
+    public static final char SOUTH = 'S';
+    public static final char EAST = 'E';
+    public static final char WEST = 'W';
 
     // Objeto de Transferência de Dados
     public static class BeamData {
         public int id, r, c, l;
         public char dir;
+        public int dr, dc; // Vetores de direção (delta row, delta column)
 
         public BeamData(int id, int r, int c, int l, char dir) {
             this.id = id;
@@ -13,6 +23,15 @@ public class EldrinSystem {
             this.c = c;
             this.l = l;
             this.dir = dir;
+
+            // Tradução da letra para vetores matemáticos (Calculado apenas 1 vez)
+            switch (dir) {
+                case NORTH: this.dr = -1; this.dc = 0;  break;
+                case SOUTH: this.dr = 1;  this.dc = 0;  break;
+                case EAST:  this.dr = 0;  this.dc = 1;  break;
+                case WEST:  this.dr = 0;  this.dc = -1; break;
+                default:    this.dr = 0;  this.dc = 0;
+            }
         }
     }
 
@@ -21,7 +40,7 @@ public class EldrinSystem {
     private BeamData[] beams;
     private Graph graph;
     private int[][] grid;
-    private boolean[] inCorridor; // Substitui o arrayList.contains() para pesquisas ultrarrápidas
+    private boolean[] inCorridor;
 
     public EldrinSystem(int R, int C, int N, int L, int B, BeamData[] beams) {
         this.R = R;
@@ -41,16 +60,11 @@ public class EldrinSystem {
         // 1. LÓGICA DE CONSTRUÇÃO DA GRELHA
         for (int i = 1; i <= B; i++) {
             BeamData b = beams[i];
-            int dr = 0, dc = 0;
-            if (b.dir == 'N') dr = -1;
-            else if (b.dir == 'S') dr = 1;
-            else if (b.dir == 'E') dc = 1;
-            else if (b.dir == 'W') dc = -1;
 
-            // Desenhar o corpo do raio
+            // Desenhar o corpo do raio usando b.dr e b.dc diretamente
             for (int k = 0; k < b.l; k++) {
-                int currR = b.r + k * dr;
-                int currC = b.c + k * dc;
+                int currR = b.r + k * b.dr;
+                int currC = b.c + k * b.dc;
                 grid[currR][currC] = b.id;
 
                 // Verificar se toca no corredor alvo
@@ -66,15 +80,10 @@ public class EldrinSystem {
         // 2. SIMULAÇÃO DE COLISÕES (Ray-tracing interno)
         for (int i = 1; i <= B; i++) {
             BeamData b = beams[i];
-            int dr = 0, dc = 0;
-            if (b.dir == 'N') dr = -1;
-            else if (b.dir == 'S') dr = 1;
-            else if (b.dir == 'E') dc = 1;
-            else if (b.dir == 'W') dc = -1;
 
             // Começar a viagem imediatamente à frente do raio
-            int currR = b.r + b.l * dr;
-            int currC = b.c + b.l * dc;
+            int currR = b.r + b.l * b.dr;
+            int currC = b.c + b.l * b.dc;
 
             // Viajar até aos limites do mapa
             while (currR >= 0 && currR < R && currC >= 0 && currC < C) {
@@ -82,19 +91,18 @@ public class EldrinSystem {
                 if (blockerId != 0 && blockerId != b.id) {
                     graph.addDependency(blockerId, b.id);
                 }
-                currR += dr;
-                currC += dc;
+                currR += b.dr;
+                currC += b.dc;
             }
         }
 
-        // 3. EXECUTAR ALGORITMOS DE GRAFOS
         return runEngine(corridorBeams);
     }
 
     // Lógica privada de Grafos (BFS + Kahn)
     private List<Integer> runEngine(List<Integer> targets) {
 
-        // --- FASE BFS: Encontrar quem tem de sair ---
+        // FASE BFS: Encontrar quem tem de sair
         Queue<Node> q = new LinkedList<>();
         int reqCount = 0;
 
@@ -118,12 +126,11 @@ public class EldrinSystem {
             }
         }
 
-        // Se ninguém precisa de sair, é alarme falso
         if (reqCount == 0) {
             return new ArrayList<>();
         }
 
-        // --- FASE KAHN: Ordenação Topológica com PriorityQueue ---
+        // FASE KAHN: Ordenação Topológica com PriorityQueue
         PriorityQueue<Node> ready = new PriorityQueue<>();
 
         for (int i = 1; i <= B; i++) {

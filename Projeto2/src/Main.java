@@ -6,12 +6,14 @@ import java.util.StringTokenizer;
 
 public class Main {
 
+    public static final String MSG_DISASTER = "Disaster";
+    public static final String MSG_FLS_ALARM = "False alarm";
+
     public static void main(String[] args) throws IOException {
-        // Inicializa o leitor rápido nativo do Java
         BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
         String line = br.readLine();
-        if (line == null || line.trim().isEmpty()) return; // Segurança
+        if (line == null || line.trim().isEmpty()) return;
 
         int T = Integer.parseInt(line.trim());
 
@@ -47,11 +49,11 @@ public class Main {
             EldrinSystem system = new EldrinSystem(R, C, N, L, B, beams);
             List<Integer> result = system.solveProblem();
 
-            // A main apenas lida com o output
+            // PODEREMOS USAR EXCEÇÕES PARA A MAIN NÃO SABER O ESTADO DE result
             if (result == null) {
-                System.out.println("Disaster");
+                System.out.println(MSG_DISASTER);
             } else if (result.isEmpty()) {
-                System.out.println("False alarm");
+                System.out.println(MSG_FLS_ALARM);
             } else {
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < result.size(); i++) {
