@@ -1,4 +1,4 @@
-package topologicalSort;
+package system;
 
 public class Graph {
     public Node[] nodes;
