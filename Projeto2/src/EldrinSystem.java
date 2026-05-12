@@ -1,3 +1,4 @@
+
 import topologicalSort.Graph;
 import topologicalSort.Node;
 
@@ -5,13 +6,7 @@ import java.util.*;
 
 public class EldrinSystem {
 
-    // Constantes para as direções
-    public static final char NORTH = 'N';
-    public static final char SOUTH = 'S';
-    public static final char EAST = 'E';
-    public static final char WEST = 'W';
 
-    // Objeto de Transferência de Dados
     public static class BeamData {
         public int id, r, c, l;
         public char dir;
@@ -26,21 +21,41 @@ public class EldrinSystem {
 
             // Tradução da letra para vetores matemáticos (Calculado apenas 1 vez)
             switch (dir) {
-                case NORTH: this.dr = -1; this.dc = 0;  break;
-                case SOUTH: this.dr = 1;  this.dc = 0;  break;
-                case EAST:  this.dr = 0;  this.dc = 1;  break;
-                case WEST:  this.dr = 0;  this.dc = -1; break;
-                default:    this.dr = 0;  this.dc = 0;
+                case NORTH:
+                    this.dr = -1;
+                    this.dc = 0;
+                    break;
+                case SOUTH:
+                    this.dr = 1;
+                    this.dc = 0;
+                    break;
+                case EAST:
+                    this.dr = 0;
+                    this.dc = 1;
+                    break;
+                case WEST:
+                    this.dr = 0;
+                    this.dc = -1;
+                    break;
+                default:
+                    this.dr = 0;
+                    this.dc = 0;
             }
         }
     }
+
+    // Constantes para as direções
+    public static final char NORTH = 'N';
+    public static final char SOUTH = 'S';
+    public static final char EAST = 'E';
+    public static final char WEST = 'W';
 
     // Estado do caso de teste
     private int R, C, N, L, B;
     private BeamData[] beams;
     private Graph graph;
     private int[][] grid;
-    private boolean[] inCorridor;
+    private List<Integer> corridorBeams;
 
     public EldrinSystem(int R, int C, int N, int L, int B, BeamData[] beams) {
         this.R = R;
@@ -51,23 +66,37 @@ public class EldrinSystem {
         this.beams = beams;
         this.graph = new Graph(B);
         this.grid = new int[R][C];
-        this.inCorridor = new boolean[B + 1];
+        this.corridorBeams = new ArrayList<>();
     }
 
     public List<Integer> solveProblem() {
-        List<Integer> corridorBeams = new ArrayList<>();
+        // 1: desenha os raios na grelha e anota quem esta diretamente no corredor alvo
+        buildGridAndFindTargets();
 
-        // 1. LÓGICA DE CONSTRUÇÃO DA GRELHA
+        // 2: regista no grafo colisoes, quem bloqueia quem
+        buildDependencyGraph();
+
+        // 3: usa BFS para descobrir quantos raios têm de sair
+        int reqCount = findRequiredBeams();
+
+        // e ninguem precisa de sair, o caminho ja estava livre (False alarm).
+        if (reqCount == 0) {
+            return new ArrayList<>();
+        }
+
+        //  4: usa Topological Sort para ditar a ordem de fuga, e deteta ciclos (Disaster).
+        return executeKahnAlgorithm(reqCount);
+    }
+
+    private void buildGridAndFindTargets() {
+        boolean[] inCorridor = new boolean[B + 1];
         for (int i = 1; i <= B; i++) {
             BeamData b = beams[i];
-
-            // Desenhar o corpo do raio usando b.dr e b.dc diretamente
             for (int k = 0; k < b.l; k++) {
                 int currR = b.r + k * b.dr;
                 int currC = b.c + k * b.dc;
                 grid[currR][currC] = b.id;
 
-                // Verificar se toca no corredor alvo
                 if (currC >= L && currC < L + N) {
                     if (!inCorridor[b.id]) {
                         inCorridor[b.id] = true;
@@ -76,16 +105,15 @@ public class EldrinSystem {
                 }
             }
         }
+    }
 
-        // 2. SIMULAÇÃO DE COLISÕES (Ray-tracing interno)
+    private void buildDependencyGraph() {
         for (int i = 1; i <= B; i++) {
             BeamData b = beams[i];
 
-            // Começar a viagem imediatamente à frente do raio
             int currR = b.r + b.l * b.dr;
             int currC = b.c + b.l * b.dc;
 
-            // Viajar até aos limites do mapa
             while (currR >= 0 && currR < R && currC >= 0 && currC < C) {
                 int blockerId = grid[currR][currC];
                 if (blockerId != 0 && blockerId != b.id) {
@@ -95,18 +123,13 @@ public class EldrinSystem {
                 currC += b.dc;
             }
         }
-
-        return runEngine(corridorBeams);
     }
 
-    // Lógica privada de Grafos (BFS + Kahn)
-    private List<Integer> runEngine(List<Integer> targets) {
-
-        // FASE BFS: Encontrar quem tem de sair
+    private int findRequiredBeams() {
         Queue<Node> q = new LinkedList<>();
         int reqCount = 0;
 
-        for (int id : targets) {
+        for (int id : corridorBeams) {
             Node n = graph.nodes[id];
             if (!n.isRequired) {
                 n.isRequired = true;
@@ -125,14 +148,13 @@ public class EldrinSystem {
                 }
             }
         }
+        return reqCount;
+    }
 
-        if (reqCount == 0) {
-            return new ArrayList<>();
-        }
-
-        // FASE KAHN: Ordenação Topológica com PriorityQueue
+    private List<Integer> executeKahnAlgorithm(int reqCount) {
         PriorityQueue<Node> ready = new PriorityQueue<>();
 
+        // Calcular graus de entrada só para os que têm de sair
         for (int i = 1; i <= B; i++) {
             Node n = graph.nodes[i];
             if (n.isRequired) {
@@ -147,11 +169,11 @@ public class EldrinSystem {
             }
         }
 
-        List<Integer> result = new ArrayList<>();
+        List<Integer> escapeOrder = new ArrayList<>();
 
         while (!ready.isEmpty()) {
             Node curr = ready.poll();
-            result.add(curr.id);
+            escapeOrder.add(curr.id);
 
             for (Node next : curr.blocks) {
                 if (next.isRequired) {
@@ -163,7 +185,6 @@ public class EldrinSystem {
             }
         }
 
-        // Teste de Aciclicidade
-        return (result.size() == reqCount) ? result : null;
+        return (escapeOrder.size() == reqCount) ? escapeOrder : null;
     }
 }

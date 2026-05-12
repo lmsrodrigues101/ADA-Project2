@@ -34,7 +34,7 @@ public class Main {
 
             EldrinSystem.BeamData[] beams = new EldrinSystem.BeamData[B + 1];
 
-            // Lê as informações de cada raio
+            // informações do raio
             for (int i = 1; i <= B; i++) {
                 st = new StringTokenizer(br.readLine());
                 int r = Integer.parseInt(st.nextToken());
@@ -45,11 +45,11 @@ public class Main {
                 beams[i] = new EldrinSystem.BeamData(i, r, c, l, dir);
             }
 
-            // Criamos um novo sistema para cada caso de teste
+            // novo sistema para cada teste
             EldrinSystem system = new EldrinSystem(R, C, N, L, B, beams);
             List<Integer> result = system.solveProblem();
 
-            // PODEREMOS USAR EXCEÇÕES PARA A MAIN NÃO SABER O ESTADO DE result
+
             if (result == null) {
                 System.out.println(MSG_DISASTER);
             } else if (result.isEmpty()) {
