@@ -154,7 +154,6 @@ public class EldrinSystem {
     private List<Integer> executeKahnAlgorithm(int reqCount) {
         PriorityQueue<Node> ready = new PriorityQueue<>();
 
-        // Calcular graus de entrada só para os que têm de sair
         for (int i = 1; i <= B; i++) {
             Node n = graph.nodes[i];
             if (n.isRequired) {
